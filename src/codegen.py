@@ -49,6 +49,33 @@ class CypherGenerator:
         else:
             return ''
 
+    def _time_window_to_cypher(self, mode: str, field: str) -> str:
+        """
+        Convert time window mode to appropriate Cypher date function.
+
+        Args:
+            mode: Time window mode (monthly, daily, yearly, weekly)
+            field: Field name containing the datetime value
+
+        Returns:
+            Cypher expression for time window truncation
+        """
+        mode_lower = mode.lower()
+
+        if mode_lower == 'monthly' or mode_lower == 'month':
+            return f"date.truncate('month', datetime({field}))"
+        elif mode_lower == 'daily' or mode_lower == 'day':
+            return f"date.truncate('day', datetime({field}))"
+        elif mode_lower == 'yearly' or mode_lower == 'year':
+            return f"date.truncate('year', datetime({field}))"
+        elif mode_lower == 'weekly' or mode_lower == 'week':
+            return f"date.truncate('week', datetime({field}))"
+        elif mode_lower == 'hourly' or mode_lower == 'hour':
+            return f"datetime.truncate('hour', datetime({field}))"
+        else:
+            # Default to monthly if unknown
+            return f"date.truncate('month', datetime({field}))"
+
     def generate_load(self, stmt: LoadStatement) -> str:
         """Generate Cypher for LOAD_CSV statement."""
         lines = [f"// LOAD_CSV: {stmt.path} AS {stmt.node_label}"]
@@ -101,6 +128,12 @@ class CypherGenerator:
         for field in stmt.group_by:
             with_parts.append(f"  m.{field} AS {field}")
 
+        # Time window (also a grouping key)
+        if stmt.time_window:
+            tw = stmt.time_window
+            time_expr = self._time_window_to_cypher(tw.mode, f"m.{tw.source_field}")
+            with_parts.append(f"  {time_expr} AS {tw.target_field}")
+
         # Aggregations
         for agg in stmt.aggregations:
             if agg.function == 'sum':
@@ -112,11 +145,6 @@ class CypherGenerator:
                     with_parts.append(f"  COUNT(*) AS {agg.alias}")
             elif agg.function == 'first':
                 with_parts.append(f"  COLLECT(m.{agg.field})[0] AS {agg.alias}")
-
-        # Time window
-        if stmt.time_window:
-            tw = stmt.time_window
-            with_parts.append(f"  {tw.mode}(m.{tw.source_field}) AS {tw.target_field}")
 
         lines.append("WITH")
         lines.append(",\n".join(with_parts))
@@ -185,7 +213,7 @@ class CypherGenerator:
 
         # Group by clause
         group_by_str = ', '.join(f"e.{field}" for field in stmt.group_by)
-        lines.append(f"WITH {group_by_str}, {self.generate_expression(stmt.expression)} AS {stmt.field_name}")
+        lines.append(f"WITH {group_by_str}, {self.generate_expression(stmt.expression, 'e')} AS {stmt.field_name}")
 
         lines.append(f"MERGE (g:{stmt.target_label} {{ {stmt.group_by[0]}: e.{stmt.group_by[0]} }})")
         lines.append(f"SET g.{stmt.field_name} = {stmt.field_name};")
@@ -202,8 +230,13 @@ class CypherGenerator:
 
         return '\n'.join(lines)
 
-    def generate_expression(self, expr: Expression) -> str:
-        """Generate Cypher expression from AST expression."""
+    def generate_expression(self, expr: Expression, context_var: str = None) -> str:
+        """Generate Cypher expression from AST expression.
+
+        Args:
+            expr: Expression to generate
+            context_var: Current context variable (e.g., 'e', 'a') for resolving identifiers
+        """
         if isinstance(expr, IdentifierExpr):
             # Handle dotted identifiers (e.g., activity.id)
             parts = expr.name.split('.')
@@ -226,12 +259,16 @@ class CypherGenerator:
             return f"'{expr.value}'"
 
         elif isinstance(expr, BinaryOpExpr):
-            left = self.generate_expression(expr.left)
-            right = self.generate_expression(expr.right)
+            left = self.generate_expression(expr.left, context_var)
+            right = self.generate_expression(expr.right, context_var)
             return f"({left} {expr.operator} {right})"
 
         elif isinstance(expr, FunctionCallExpr):
-            return f"{expr.function_name.upper()}({expr.argument})"
+            # Add context variable prefix if provided and argument is a simple identifier
+            arg = expr.argument
+            if context_var and '.' not in arg:
+                arg = f"{context_var}.{arg}"
+            return f"{expr.function_name.upper()}({arg})"
 
         elif isinstance(expr, ConcatenationExpr):
             parts = []
@@ -251,7 +288,7 @@ class CypherGenerator:
                     else:
                         parts.append(part.name)
                 else:
-                    parts.append(self.generate_expression(part))
+                    parts.append(self.generate_expression(part, context_var))
             return " + ".join(parts)
 
         return ''
