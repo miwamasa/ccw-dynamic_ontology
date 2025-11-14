@@ -1,0 +1,10 @@
+product,factory,type,value,unit,time
+productA,FA1,electricity,100,kwh,2025-11-01
+productB,FA1,gass,200,m3,2025-11-01
+productC,FA1,electricty,200,kwh,2025-11-01
+productA,FA1,electricity,150,kwh,2025-11-02
+productB,FA1,gas,180,m3,2025-11-02
+productC,FA1,electricity,220,kwh,2025-11-02
+productA,FA2,electricity,120,kwh,2025-11-01
+productB,FA2,gas,160,m3,2025-11-01
+productC,FA2,electricity,180,kwh,2025-11-01
