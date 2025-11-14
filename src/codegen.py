@@ -78,6 +78,9 @@ class CypherGenerator:
 
     def generate_load(self, stmt: LoadStatement) -> str:
         """Generate Cypher for LOAD_CSV statement."""
+        # Numeric field names that should be converted to numbers
+        numeric_fields = {'value', 'amount', 'quantity', 'count', 'price', 'cost', 'total', 'sum'}
+
         lines = [f"// LOAD_CSV: {stmt.path} AS {stmt.node_label}"]
         lines.append(f'LOAD CSV WITH HEADERS FROM "file:///{stmt.path}" AS row')
         lines.append("WITH row")
@@ -89,7 +92,11 @@ class CypherGenerator:
         # Create main node with mapped columns
         fields = []
         for src, dst in stmt.column_map.items():
-            fields.append(f"  {dst}: row.{src}")
+            # Convert numeric fields using toFloat()
+            if dst.lower() in numeric_fields:
+                fields.append(f"  {dst}: toFloat(row.{src})")
+            else:
+                fields.append(f"  {dst}: row.{src}")
 
         lines.append(f"CREATE (m:{stmt.node_label} {{")
         lines.append(",\n".join(fields))

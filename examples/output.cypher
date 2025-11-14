@@ -6,7 +6,7 @@ CREATE (m:measurement {
   factory_id: row.factory,
   product_id: row.product,
   fuel: row.type,
-  value: row.value,
+  value: toFloat(row.value),
   unit: row.unit,
   time: row.time
 })
