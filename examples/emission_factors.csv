@@ -1,0 +1,3 @@
+fuel,factor,factor_unit,scope
+electricity,0.5,kgco2e_per_kwh,scope2
+gas,2.0,kgco2e_per_m3,scope1
