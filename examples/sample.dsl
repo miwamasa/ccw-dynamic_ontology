@@ -24,6 +24,7 @@ AGGREGATE measurement
   INTO activity
   AGG_SUM(value) AS value
   TAKE_FIRST(unit) AS unit
+  TAKE_FIRST(fuel) AS fuel
   TIME_WINDOW monthly FROM time INTO time_window
 
 # --- Unit conversion (optional) ---

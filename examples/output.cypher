@@ -26,14 +26,16 @@ MATCH (m:measurement)
 WITH
   m.factory_id AS factory_id,
   m.product_id AS product_id,
+  date.truncate('month', datetime(m.time)) AS time_window,
   SUM(m.value) AS value,
   COLLECT(m.unit)[0] AS unit,
-  monthly(m.time) AS time_window
+  COLLECT(m.fuel)[0] AS fuel
 CREATE (a:activity {
   factory_id: factory_id,
   product_id: product_id,
   value: value,
   unit: unit,
+  fuel: fuel,
   time_window: time_window
 })
 WITH a
@@ -54,7 +56,7 @@ MERGE (e)-[:FROM_ACTIVITY]->(a);
 
 // COMPUTE: total_emission FOR emission
 MATCH (e:emission)
-WITH e.scope, SUM(value) AS total_emission
+WITH e.scope, SUM(e.value) AS total_emission
 MERGE (g:ghg_report { scope: e.scope })
 SET g.total_emission = total_emission;
 
