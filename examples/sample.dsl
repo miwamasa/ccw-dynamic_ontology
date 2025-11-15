@@ -13,6 +13,15 @@ LOAD_CSV "level1.csv" AS measurement
     time -> time
   }
 
+# --- Load emission factors table ---
+LOAD_CSV "emission_factors.csv" AS emission_factor_table
+  MAP_COLUMNS {
+    fuel -> fuel,
+    factor -> factor,
+    factor_unit -> factor_unit,
+    scope -> scope
+  }
+
 # --- Normalize typos in fuel types ---
 NORMALIZE measurement {
   fuel: {"gass": "gas", "electricty": "electricity"}

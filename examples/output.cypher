@@ -12,6 +12,17 @@ CREATE (m:measurement {
 })
 MERGE (m)-[:AT_FACTORY]->(f);
 
+// LOAD_CSV: emission_factors.csv AS emission_factor_table
+LOAD CSV WITH HEADERS FROM "file:///emission_factors.csv" AS row
+WITH row
+CREATE (m:emission_factor_table {
+  fuel: row.fuel,
+  factor: toFloat(row.factor),
+  factor_unit: row.factor_unit,
+  scope: row.scope
+})
+;
+
 // NORMALIZE: measurement
 MATCH (n:measurement)
 WHERE n.fuel = 'gass'
