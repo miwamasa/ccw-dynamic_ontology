@@ -125,6 +125,9 @@ class CypherGenerator:
 
     def generate_aggregate(self, stmt: AggregateStatement) -> str:
         """Generate Cypher for AGGREGATE statement."""
+        # Numeric field names that should be converted to numbers in aggregations
+        numeric_fields = {'value', 'amount', 'quantity', 'count', 'price', 'cost', 'total', 'sum', 'factor', 'rate', 'coefficient'}
+
         lines = [f"// AGGREGATE: {stmt.source_label} -> {stmt.target_label}"]
         lines.append(f"MATCH (m:{stmt.source_label})")
 
@@ -144,7 +147,11 @@ class CypherGenerator:
         # Aggregations
         for agg in stmt.aggregations:
             if agg.function == 'sum':
-                with_parts.append(f"  SUM(m.{agg.field}) AS {agg.alias}")
+                # Wrap numeric fields with toFloat() for safety
+                if agg.field.lower() in numeric_fields:
+                    with_parts.append(f"  SUM(toFloat(m.{agg.field})) AS {agg.alias}")
+                else:
+                    with_parts.append(f"  SUM(m.{agg.field}) AS {agg.alias}")
             elif agg.function == 'count':
                 if agg.field:
                     with_parts.append(f"  COUNT(m.{agg.field}) AS {agg.alias}")

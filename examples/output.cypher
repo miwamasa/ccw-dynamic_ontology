@@ -38,7 +38,7 @@ WITH
   m.factory_id AS factory_id,
   m.product_id AS product_id,
   date.truncate('month', datetime(m.time)) AS time_window,
-  SUM(m.value) AS value,
+  SUM(toFloat(m.value)) AS value,
   COLLECT(m.unit)[0] AS unit,
   COLLECT(m.fuel)[0] AS fuel
 CREATE (a:activity {
