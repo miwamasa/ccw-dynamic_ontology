@@ -67,8 +67,8 @@ MERGE (e)-[:FROM_ACTIVITY]->(a);
 
 // COMPUTE: total_emission FOR emission
 MATCH (e:emission)
-WITH e.scope, SUM(e.value) AS total_emission
-MERGE (g:ghg_report { scope: e.scope })
+WITH e.scope AS scope, SUM(e.value) AS total_emission
+MERGE (g:ghg_report { scope: scope })
 SET g.total_emission = total_emission;
 
 // VALIDATE: ghg_report WITH total_equals_sum
