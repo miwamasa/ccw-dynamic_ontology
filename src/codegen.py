@@ -79,7 +79,7 @@ class CypherGenerator:
     def generate_load(self, stmt: LoadStatement) -> str:
         """Generate Cypher for LOAD_CSV statement."""
         # Numeric field names that should be converted to numbers
-        numeric_fields = {'value', 'amount', 'quantity', 'count', 'price', 'cost', 'total', 'sum'}
+        numeric_fields = {'value', 'amount', 'quantity', 'count', 'price', 'cost', 'total', 'sum', 'factor', 'rate', 'coefficient'}
 
         lines = [f"// LOAD_CSV: {stmt.path} AS {stmt.node_label}"]
         lines.append(f'LOAD CSV WITH HEADERS FROM "file:///{stmt.path}" AS row')
