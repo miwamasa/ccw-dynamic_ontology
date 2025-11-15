@@ -218,11 +218,13 @@ class CypherGenerator:
         lines = [f"// COMPUTE: {stmt.field_name} FOR {stmt.source_label}"]
         lines.append(f"MATCH (e:{stmt.source_label})")
 
-        # Group by clause
-        group_by_str = ', '.join(f"e.{field}" for field in stmt.group_by)
+        # Group by clause - all expressions in WITH must be aliased
+        group_by_str = ', '.join(f"e.{field} AS {field}" for field in stmt.group_by)
         lines.append(f"WITH {group_by_str}, {self.generate_expression(stmt.expression, 'e')} AS {stmt.field_name}")
 
-        lines.append(f"MERGE (g:{stmt.target_label} {{ {stmt.group_by[0]}: e.{stmt.group_by[0]} }})")
+        # Use the aliased variable name in MERGE
+        first_group_field = stmt.group_by[0]
+        lines.append(f"MERGE (g:{stmt.target_label} {{ {first_group_field}: {first_group_field} }})")
         lines.append(f"SET g.{stmt.field_name} = {stmt.field_name};")
 
         return '\n'.join(lines)
